@@ -11,6 +11,8 @@
 
 /*** defines ***/
 
+#define KILO_VERSION "0.0.1"
+
 #define CRTL_KEY(k) ((k) & 0x1f)
 
 /*** data ***/
@@ -73,7 +75,7 @@ int getCursorPosition(int *rows, int *cols) {
         if (buf[i] == 'R') break;
         i++;
     }
-    buf[i] = '\O';
+    buf[i] = '\0';
 
     if (buf[0] != '\x1b' || buf[1] != '[') return -1;
     if (sscanf(&buf[2], "%d;%d", rows, cols) != 2) return -1;
@@ -121,7 +123,21 @@ void abFree(struct abuf *ab) {
 void editorDrawRows(struct abuf *ab) {
     int y;
     for (y = 0; y < E.screenrows; y++) {
-        abAppend(ab, "~", 1);
+        if (y == E.screenrows / 3) {
+            char welcome[80];
+            int welcomelen = snprintf(welcome, sizeof(welcome),
+                "Kilo editor -- version %s", KILO_VERSION);
+            if (welcomelen > E.screencols) welcomelen = E.screencols;
+            int padding = (E.screencols - welcomelen) / 2;
+            if (padding) {
+                abAppend(ab, "~", 1);
+                padding--;
+            }
+            while (padding--) abAppend(ab, " ", 1);
+            abAppend(ab, welcome, welcomelen);
+        } else {
+            abAppend(ab, "~", 1);
+        }
 
         abAppend(ab, "\x1b[K", 3);
         if (y < E.screenrows -1) {
@@ -169,7 +185,6 @@ int main() {
     enableRawMode();
     initEditor();
 
-    char c;
     while (1) { 
         editorRefreshScreen();
         editorProcessKeypress();
